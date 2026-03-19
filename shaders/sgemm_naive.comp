@@ -1,0 +1,46 @@
+#version 450
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(set = 0, binding = 0) readonly buffer MatrixA
+{
+    float values[];
+} a_buffer;
+
+layout(set = 0, binding = 1) readonly buffer MatrixB
+{
+    float values[];
+} b_buffer;
+
+layout(set = 0, binding = 2) writeonly buffer MatrixC
+{
+    float values[];
+} c_buffer;
+
+layout(push_constant) uniform PushConstants
+{
+    uint m;
+    uint n;
+    uint k;
+} push_constants;
+
+void main()
+{
+    const uint col = gl_GlobalInvocationID.x;
+    const uint row = gl_GlobalInvocationID.y;
+
+    if (row >= push_constants.m || col >= push_constants.n)
+    {
+        return;
+    }
+
+    float sum = 0.0;
+    for (uint inner = 0; inner < push_constants.k; ++inner)
+    {
+        const uint a_index = row * push_constants.k + inner;
+        const uint b_index = inner * push_constants.n + col;
+        sum += a_buffer.values[a_index] * b_buffer.values[b_index];
+    }
+
+    c_buffer.values[row * push_constants.n + col] = sum;
+}
